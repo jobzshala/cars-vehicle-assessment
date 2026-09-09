@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: vehicles
+      POSTGRES_PASSWORD: vehicles
+      POSTGRES_DB: vehicles
+    ports:
+      # Host port is configurable (DB_PORT in .env) in case 5432 is already taken locally
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vehicles -d vehicles"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgresql://vehicles:vehicles@db:5432/vehicles
+      NHTSA_BASE_URL: https://vpic.nhtsa.dot.gov/api/vehicles
+      INGEST_CONCURRENCY: ${INGEST_CONCURRENCY:-10}
+      INGEST_MAKE_LIMIT: ${INGEST_MAKE_LIMIT:-}
+      INGEST_ON_STARTUP: ${INGEST_ON_STARTUP:-true}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  dbdata:

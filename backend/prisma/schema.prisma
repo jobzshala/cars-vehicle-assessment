@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// A vehicle manufacturer. `id` is NHTSA's Make_ID, so re-ingestion is idempotent.
+model Make {
+  id           Int               @id
+  name         String
+  vehicleTypes MakeVehicleType[]
+  updatedAt    DateTime          @updatedAt
+
+  @@index([name])
+}
+
+/// A vehicle type (e.g. "Passenger Car"). `id` is NHTSA's VehicleTypeId.
+model VehicleType {
+  id    Int               @id
+  name  String
+  makes MakeVehicleType[]
+}
+
+/// Join table: which vehicle types a make produces.
+model MakeVehicleType {
+  makeId        Int
+  vehicleTypeId Int
+  make          Make        @relation(fields: [makeId], references: [id], onDelete: Cascade)
+  vehicleType   VehicleType @relation(fields: [vehicleTypeId], references: [id], onDelete: Cascade)
+
+  @@id([makeId, vehicleTypeId])
+  @@index([vehicleTypeId])
+}
+
+/// One row per ingestion attempt, for observability and to decide whether to ingest on startup.
+model IngestionRun {
+  id             Int       @id @default(autoincrement())
+  status         String
+  startedAt      DateTime  @default(now())
+  finishedAt     DateTime?
+  makesProcessed Int       @default(0)
+  makesFailed    Int       @default(0)
+  errorMessage   String?
+
+  @@index([startedAt])
+}
