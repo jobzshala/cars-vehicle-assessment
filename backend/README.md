@@ -267,7 +267,8 @@ npm run test:cov      # with V8 coverage (text + lcov in coverage/)
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every push and pull request: install → `prisma generate` →
+The repository-level `.github/workflows/ci.yml` runs on every push and pull request. The backend
+job: install → `prisma generate` →
 lint → format check → typecheck → migrations against a Postgres service → tests with coverage
 (uploaded as an artifact) → Docker image build (uploaded as an artifact).
 
